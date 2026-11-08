@@ -8,6 +8,8 @@
 | **Archive** | one of the seven domains the agent's source is laid out by: Superbia, Invidia, Ira, Acedia, Avaritia, Gula, Luxuria |
 | **Console** | the web server module and the panel it serves; the fleet's manager |
 | **Job** | a change asked of a host, run and kept by its agent, with its trace |
+| **Configuration files** | where a commit writes rc.conf and loader.conf: Arcana's own files, read after yours, or the system's |
+| **Ledger** | what Arcana changed of a variable your files set, kept to give it back |
 | **Kept rules** | the ipfw ruleset Arcana writes down, loaded at boot and by Apply |
 | **Plugin** | what works through a program that is not FreeBSD's own: BIRD, strongSwan, Squid, dnsmasq |
 | **Queue** | changes waiting in the activity bar to be sent together |
@@ -36,7 +38,9 @@
 | Word | Is |
 |---|---|
 | **FIB** | a routing table; a process or packet uses one, `setfib(1)` |
+| **Dying jail** | a jail removed that the kernel still holds, `jls -d` |
 | **Jail** | a confined part of the system, `jail(8)` |
+| **pkgbase** | the base system as packages, `pkg(8)`'s FreeBSD-base repository |
 | **Netgraph** | the kernel's graph of networking nodes, `netgraph(4)` |
 | **rc.conf** | where the system's settings for its start are kept, `rc.conf(5)` |
 | **VNET** | a jail with a network stack of its own |

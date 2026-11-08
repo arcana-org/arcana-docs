@@ -211,7 +211,9 @@ configuration is not changed.
 
 **FreeBSD:** a commit is the agent's: it writes what rc(8) reads into
 its own file, `/usr/local/etc/rc.conf.d/arcana` (named once in
-`rc_conf_files`), and makes the kernel's state with the base tools,
+`rc_conf_files`), or into the system's `rc.conf(5)` where the host
+was switched to it ([Configuration files](../sections/config-files.md)),
+and makes the kernel's state with the base tools,
 `ifconfig(8)`, `route(8)`, `sysctl(8)`. The undo at the timeout is the
 agent's too, so a commit that cuts the host off from the console comes
 back by itself. See [The models: YANG](yang.md).
@@ -221,7 +223,7 @@ back by itself. See [The models: YANG](yang.md).
 ### Warnings accepted: `arcana-accept`
 
 A change the host would make only with your consent (naming its file in
-`rc_conf_files`, commenting out a variable of yours) is refused with
+`rc_conf_files`, changing a variable your files set too) is refused with
 the warning as the error's `error-app-tag`. The same change with the
 query parameter `arcana-accept`, the tags by commas, goes on despite
 them, and those alone:
@@ -231,6 +233,12 @@ curl -X POST ... "$H/ietf-netconf:commit?arcana-accept=rc-conf-files,rc-conf-con
 ```
 
 Nothing is accepted silently: the panel asks before it sends one.
+
+`rc-conf-conflict` merges a word list additively; a value no merge of
+words gives is refused again with `rc-conf-merge`, until its result is
+given to arcana-agent's `config-files/resolve` (or Arcana's value is
+taken by accepting `rc-conf-merge` alone). `rc-conf-not-at-boot` is
+accepted by nothing: see [Configuration files](../sections/config-files.md).
 
 ### YANG Patch
 
@@ -310,6 +318,15 @@ curl -X POST -H "Authorization: Bearer $TOKEN" -H "$J" \
 curl -N -H "Authorization: Bearer $TOKEN" https://console.example/restconf/subscriptions/7
 ```
 
+POSTed under `arcana-fleet:fleet` itself rather than a host's entry,
+`establish-subscription` subscribes every host you may read on one
+reply: its XPath is each host's, below that host's mount, and each
+record comes in its host's entry. A host lost is said on the stream
+and subscribed again when it is heard, as the fleet's stream does;
+records the console had to leave out (a client that reads too slowly)
+are said in a `lost` event, so the client knows to read again. This is
+what the page itself follows: see [What the page follows](../sections/panel.md#what-the-page-follows).
+
 ## Errors
 
 Every error is `ietf-restconf:errors` (RFC 8040 §7), with its
@@ -361,6 +378,37 @@ What is no YANG data stays a resource of Arcana's own, beside
 
 They keep these paths until `/api` goes; then they move beside
 `/restconf`, as this book will say.
+
+## Forms: a module described
+
+`GET /yang/<module>@<revision>.json` describes one of a host's modules,
+the module and revision its YANG library names, for a client to draw
+forms from: the page's own [Models](../sections/system.md#models) and
+the Android app's. Any token that reads may read it.
+
+It is made of the tables RESTCONF checks a change by: each node's path
+(RFC 9595's schema-node path), its kind, whether it is configuration,
+mandatory, a presence container, its keys, min- and max-elements,
+ordered-by, default, units and status; its type's base (a leafref its
+target's), range and length, patterns (as written, and as the POSIX
+extended regular expression the console checks by), fraction-digits,
+enums and bits, an identityref's identities, a leafref's path and
+target, a union's members; choices and cases; and what the module
+augments into others' trees. What those tables do not keep, the
+console's build adds from the module's text: each description, the
+order the module writes its nodes in, a leaf's typedef. Actions,
+notifications and their input and output are left out.
+
+```
+curl -H "Authorization: Bearer $TOKEN" \
+    https://console.example/yang/arcana-jails@2026-10-14.json
+```
+
+Its entity tag is the revision and the console's version, so
+`If-None-Match` gets 304 until either changes; a revision the console
+does not have is 404, saying the one it has. It is no RESTCONF
+resource: RFC 8040's yang-library `schema` leaf names a module's YANG
+text, which this is not.
 
 ## From /api to RESTCONF
 

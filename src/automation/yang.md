@@ -135,23 +135,27 @@ gives the rows.
 
 What a commit keeps of rc.conf(5) goes into a file of Arcana's own,
 `/usr/local/etc/rc.conf.d/arcana`, which `rc_conf_files` in
-`/etc/rc.conf` names so that rc(8) reads it after yours. Your files are
+`/etc/rc.conf` names so that rc(8) reads it after yours, or, on a host
+switched to the system's files, into yours, where each variable is set
+([Configuration files](../sections/config-files.md)). Your files are
 left as they are but for what you accept with `-a`: naming the file in
 `rc_conf_files`, once (`rc-conf-files`), and a variable Arcana writes
-that your files set too, commented out in yours (`rc-conf-conflict`):
-the line stays where it was, under a `#`, with `# taken by Arcana`
-after it, so you can see what was yours and put it back. Nothing of
-yours is deleted. A refusal says which it waits for:
+that your files set too (`rc-conf-conflict`): a word list merged
+additively, as `sysrc var+=` adds each word, a value that no merge
+gives refused again (`rc-conf-merge`) until it is resolved by hand.
+Nothing of yours is commented out or deleted. A refusal says which it
+waits for:
 
 ```
-arcanactl: commit: your files set what Arcana would write: static_routes (/etc/rc.conf line 2); accept rc-conf-conflict to keep them in Arcana's file, commented out in yours (go on with -a rc-conf-conflict)
+arcanactl: commit: your files set what Arcana would change: static_routes (/etc/rc.conf line 2 "lan", Arcana's "lan wg", merged "lan wg"); accept rc-conf-conflict: a word list keeps your words and adds Arcana's (as sysrc += does), in Arcana's file, read after yours, your lines as they are; a value no merge gives is asked for next (rc-conf-merge) (go on with -a rc-conf-conflict)
 ```
 
 A host that was configured by hand can be moved under Arcana in one
 go, service by service, with arcana-services' `convert` action: each
 named service's `<name>_enable` and `<name>_*` variables, as rc(8)
-reads them from your files, are written to Arcana's file and commented
-out in yours; no name, every rc script the host has. `-n` says what
+reads them from your files, are copied into Arcana's file, the same
+values, yours left as they are (on a host on the system's files it has
+nothing to do, and says so); no name, every rc script the host has. `-n` says what
 would be taken, writing nothing; a variable whose value is an
 expansion, or on a line sh(1) may or may not run, is left where it is
 and the row says why. It is a change like a commit's: the same warnings

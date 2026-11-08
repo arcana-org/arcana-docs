@@ -210,7 +210,9 @@ the file and from the kernel.
 Some of an edge's commits change what is yours, and the agent makes
 them only with your consent: naming Arcana's file in `rc_conf_files`,
 once (`rc-conf-files`), and a variable your own files set that Arcana's
-writes (`rc-conf-conflict`, yours then commented out, never deleted).
+writes (`rc-conf-conflict`: a word list merged additively, as `sysrc
++=` does, never commented out; see [Configuration
+files](../sections/config-files.md)).
 The plan lists each such warning a step's commit may ask under **To
 accept** (the edge, the step, what it says), and the **Deploy** and
 **Make all again** dialogs list them again: their button accepts them

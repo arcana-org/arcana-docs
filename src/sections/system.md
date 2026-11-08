@@ -11,6 +11,9 @@ writes a file.
 
 ## System
 
+- **Configuration files**: whether a commit writes `rc.conf(5)` and
+  `loader.conf(5)` into Arcana's own files or the system's, and
+  **Switch**: see [Configuration files](config-files.md).
 - **Time (NTP)**: the servers `ntpd(8)` keeps time by (`ntp.conf`,
   eight at most; ntpd enabled and restarted), and its peers
   (`ntpq -pn`).
@@ -30,6 +33,44 @@ writes a file.
   is limited now below it. rctl needs `kern.racct.enable=1`, a tunable
   of the boot: where it is off, a button writes it to
   `/boot/loader.conf.d/arcana.conf` for the next boot.
+
+## Models
+
+**System**, **Models** is the host's YANG modules, as its YANG library
+(RFC 8525) names them, each with its revision. A module of Arcana's
+picked shows its configuration: each list as a table of its entries,
+each entry edited by its form, with **New**; each container with
+**Edit**. The forms are not written by hand: the page draws them from
+the module itself.
+
+![System, Models: arcana-jails, its jails each edited by its form](../img/sys-models.png)
+
+- A field follows its node's type: a boolean or an `empty` is a
+  checkbox, an enumeration or an identityref a choice of its values
+  (the identities of modules the host has), an integer a number input
+  within its range; anything else is text, its pattern, length, range,
+  units and default said beside. A leaf-list is a value a line, a
+  container a fieldset, a list inside it entries added and taken away,
+  a choice its cases to pick.
+- The keys come first, fixed in an entry that is there; what is
+  mandatory is marked; each node's description is the help under its
+  field. What is not configuration, and what the host's library does
+  not have, is left out.
+- An entry that is there is read from the host's running datastore
+  and filled in. The page checks the obvious first (mandatory, range,
+  length, pattern, an enum's name); the rest is the host's, and an
+  error the host gives is said at its field.
+- **Save** writes it into the host's candidate (a new entry POSTed into
+  its parent, one there or a container PUT) and commits it confirmed,
+  then confirms it: the host undoes it by itself if the console is not
+  heard from again, as with every commit ([The API:
+  RESTCONF](../automation/restconf.md)).
+
+The Jails tab's **New jail (from its model)** is the same form, of
+`arcana-jails`' `jail`: its name, whether it starts at boot, its
+parameters. A module is described for the forms at
+`/yang/<module>@<revision>.json`, which an API client and the Android
+app can read too: see [The API: RESTCONF](../automation/restconf.md#forms-a-module-described).
 
 ## Security
 

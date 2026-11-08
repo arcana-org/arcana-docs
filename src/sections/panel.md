@@ -202,6 +202,48 @@ selected then; a change is taken out of the queue with its cross, and
 **As a workflow** makes the queue a workflow. With the queue off, a
 change is sent at once.
 
+## What the page follows
+
+The page is told rather than asking: it follows the console's streams
+of events over Server-Sent Events (RFC 8040's streams, RFC 8639's
+subscriptions and RFC 8641's YANG-Push), at most three at once, each a
+stream of the same HTTP/2 connection:
+
+- **The fleet's stream**, while the console is shown: every host's
+  events. A host's jails are read again when its events say (a jail
+  started or stopped, a job ended, `jail.conf` changed), a second on,
+  one read for a burst; the open host's tabs, the Log tab's events and
+  the kernel's messages are added as they are told; the nexthop groups
+  and the addresses beside them when the host's routes or interfaces
+  change.
+- **The hosts' stats**, a periodic subscription of the operational
+  datastore: every host's on the fleet and **Devices**, the host's own
+  on its page, pushed rather than read.
+- **The jobs**, an on-change subscription of `arcana-jobs`, while a job
+  of the page's runs or a **Jobs** tab is shown: a running job is read
+  again at each of its steps.
+
+When a stream is cut, the fleet's comes back by itself and asks for
+what it missed (`Last-Event-ID`); a subscription is established again.
+A host lost or heard again, events the console had to leave out, the
+stream back after a cut, or the page shown again after it was hidden:
+what is shown of that host, or of every host, is read again. What a
+stream tells is still read every few minutes besides, and on its old
+timer while its stream is down.
+
+Some things are still read on a timer, because no event tells them or
+what is shown is a rate or a sample: the jails' processes, memory and
+CPU on the host's tiles; the map's and the Interfaces tab's counters;
+processes; the firewall's states and counters, connections, sockets
+and neighbours; monitors and the FEC relay's samples; usage and
+monitoring charts; traceroute rounds; the tunnels' quality; the
+services, storage, kernel, SSH and certificates tabs now and then; and
+the console's own pages (CA, cluster, plugins, feeds, workflows,
+SD-WAN, Security, Builder), which no host's stream tells.
+
+For the same streams from a client of your own, see [Events: streams
+and subscriptions](../automation/restconf.md#events-streams-and-subscriptions).
+
 ## Notifications on other devices
 
 A change asked for in one browser is told, when it ends, to every other

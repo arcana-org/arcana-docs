@@ -2,6 +2,8 @@
 # gives them (pwa_test.c, shot("…")), each with the name it has in
 # src/img/.  A picture showing a real host's addresses is never listed:
 # the test runs on the lab VM, whose own interfaces are real.
+# The host's own name is real too (the agent says gethostname(3)):
+# the run must give the agent the name lab, or the pictures show it.
 #
 # test name			book name
 2-fleet				tour-fleet
@@ -49,7 +51,6 @@ m6-fleet			tour-phone-fleet
 9-sdwan-edges-plan		sd-edges-plan
 9-sdwan-deploy-ask		sd-deploy-ask
 9-sdwan-edges-applied		sd-edges-applied
-9-sdwan-security		sd-security
 9-sdwan-identities		sd-identities
 9-sdwan-paths			sd-paths-error
 
@@ -67,6 +68,22 @@ m12-sdwan			phone-identities
 5a-task-sent			tasks-sent
 5b-task-waiting			tasks-waiting
 6a-services-live		tasks-live
+9w-builder-jails		bld-jails
+9x-builder-bulk			bld-bulk
+9-sdwan-security-functions	sd-security-functions
+7g-bird-bgp-form		sec-bird-bgp-form
+9-certificates			sec-certificates
+8-network-bgp			sec-routing-bgp
+9b-ssh				sec-ssh
+9c-ssh-keys			sec-ssh-keys
+0c-dma				set-dma
+1f-host-bundle			tour-host-bundle
+3d-yang				tour-jails-yang
+9t-troubleshoot			tour-troubleshoot
+0p-game-mode			game-mode
+8c1-cfgfiles-switch		cfg-switch
+4h-yform-models			sys-models
+6b-clean			pkg-clean
 #
 # The Android app's pictures (src/img/app-*.png) are not from this
 # test: arcana-apk's ScreenshotsTest draws them, with

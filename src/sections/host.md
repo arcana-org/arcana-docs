@@ -188,6 +188,19 @@ restarting while something happens to it; unknown when the host does
 not answer), with **Start**, **Stop**, **Restart** and **Kill**. Those
 running come first; **Sort** orders by running or by name.
 
+A jail that was removed but that the kernel still holds is **dying**
+(`jls -d`): something made inside it keeps it, such as a filesystem
+mounted from within the jail and not unmounted, or a socket still
+closing, until that goes. Where a jail of the same name runs again
+meanwhile, the dying one is not a second row: it is shown under its
+live namesake as **DYING: JID n**, by the kernel's jail id, so the name
+stays one jail's. A dying jail with no live namesake is its own row,
+in the state dying.
+
+Each host's jails follow its events: a jail started or stopped, a job
+ended, `jail.conf` changed, and the list is read again a second later
+([What the page follows](panel.md#what-the-page-follows)).
+
 **At boot** (lit) or **Not at boot** says whether rc.d/jail starts the
 jail when the host boots, by `rc.conf`'s `jail_enable` and `jail_list`,
 and pressed changes it there alone, the jail as it is now. rc.d/jail
@@ -196,9 +209,10 @@ empty: leaving one out of all makes the list every other jail, putting
 one in with `jail_enable` off makes the list that jail alone, and
 leaving out the last one named turns `jail_enable` off. The change is
 a confirmed commit of arcana-jails' `boot`, written to Arcana's own
-rc.conf file; where your files set `jail_list` or `jail_enable` too, the
-commit waits, and **Accept rc-conf-conflict and commit again** comments
-your line out (see [YANG](../automation/yang.md)). From the command
+rc.conf file (or the system's: see [Configuration
+files](config-files.md)); where your files set `jail_list` or
+`jail_enable` too, the commit waits, and **Accept rc-conf-conflict and
+commit again** merges the lists, your jails kept and Arcana's added. From the command
 line: `arcanactl enable|disable [-a warning] <jail>`.
 
 ### A jail's page
@@ -220,8 +234,11 @@ them, their sizes and where they are mounted. **Snapshot** takes one.
 
 ### Jails made from here
 
-The jails list has **+ jail**, **Defaults** and **Templates**, for jails
-kept the way one keeps them by hand:
+The jails list has **+ jail**, **Defaults**, **Templates** and **New
+jail (from its model)**. The last is a jail's entry in `arcana-jails`
+by the form its YANG module makes, saved by a confirmed commit (see
+[Models](system.md#models)). The others are for jails kept the way one
+keeps them by hand:
 
 - **Defaults** writes `/etc/jail.conf`, what every jail includes: its
   path (`/usr/jails/${name}`), host name in your domain
@@ -237,7 +254,7 @@ kept the way one keeps them by hand:
 - **+ jail** makes a jail of its own file, `/etc/jail.conf.d/<name>.conf`,
   which includes the defaults and holds the jail's block:
   `devfs_ruleset`, `sysvsem`, `sysvshm` and `sysvmsg = new`,
-  `allow.raw_sockets`, its addresses as `ip4.addr = "bridge0|172.23.1.43"`
+  `allow.raw_sockets`, its addresses as `ip4.addr = "bridge0|192.0.2.43"`
   and `ip6.addr = "bridge0.20|2001:db8::443"` (an interface and an
   address a line), the templates it includes, and more lines. Its ZFS
   dataset is made from a base jail's snapshot, as the base's sibling
@@ -267,7 +284,8 @@ running come first, then those enabled; **Sort** orders by running,
 enabled or name, and the other way round when pressed again. A
 service's drawer edits its `rc.conf` variables. **Enable**, **Disable**
 and the variables are a confirmed commit of arcana-services: written to
-Arcana's own rc.conf file, kept once the console has heard the host
+Arcana's own rc.conf file (or the system's, [Configuration
+files](config-files.md)), kept once the console has heard the host
 again, undone by the host otherwise. A commit that waits on a warning
 (your files name the variable too, or `rc_conf_files` does not name
 Arcana's file yet) says so, with a button that accepts it and commits
@@ -282,6 +300,6 @@ before.
 from `jail.conf(5)` by Arcana's `libjailconf`, and acted on with
 `jail(8)`; services are `service(8)` and `rc.conf(5)`, the host's
 written to `/usr/local/etc/rc.conf.d/arcana`, which `rc_conf_files`
-names, a jail's with `sysrc(8)` in its own root (`sysrc -R`).
+names, or to the system's `rc.conf`, a jail's with `sysrc(8)` in its own root (`sysrc -R`).
 
 </div>
