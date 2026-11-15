@@ -1,20 +1,20 @@
 # The book of Arcana
 
-The manual of [Arcana](https://github.com/spmzt/arcana), the FreeBSD
+The manual of [Arcana](https://github.com/arcana-org/arcana), the FreeBSD
 fleet manager, written as a book with [mdBook](https://rust-lang.github.io/mdBook/)
-and published at <https://spmzt.github.io/arcana-docs/>.
+and published at <https://arcana-org.github.io/arcana-docs/>.
 
 It is kept apart from Arcana's tree so that the screenshots and the
 book's history do not weigh on the code's. The book reads Arcana
-itself: its workflow checks out `spmzt/arcana` beside it, the chapters
+itself: its workflow checks out `arcana-org/arcana` beside it, the chapters
 include real files from there (`{{#include ../../arcana/…}}`), and
 every page names the Arcana commit it was built from.
 
 ## Building it
 
 ```sh
-git clone https://github.com/spmzt/arcana-docs.git
-git clone --depth 1 https://github.com/spmzt/arcana.git arcana-docs/arcana
+git clone https://github.com/arcana-org/arcana-docs.git
+git clone --depth 1 https://github.com/arcana-org/arcana.git arcana-docs/arcana
 cd arcana-docs
 mdbook serve            # http://localhost:3000
 ```

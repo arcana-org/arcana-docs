@@ -43,7 +43,7 @@ work:
 </div>
 
 Arcana is open source under the BSD-2-Clause licence:
-<https://github.com/spmzt/arcana>. This book is
-<https://github.com/spmzt/arcana-docs>, rebuilt every day from Arcana's
+<https://github.com/arcana-org/arcana>. This book is
+<https://github.com/arcana-org/arcana-docs>, rebuilt every day from Arcana's
 `main`; each page says at its foot which commit it describes. The whole
 book is also [one PDF](arcana.pdf), to read offline or print.

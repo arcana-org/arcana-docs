@@ -22,7 +22,7 @@ agent want it off: they then need neither libwebsockets nor Emscripten.
 ## From the source tree
 
 ```sh
-git clone --recurse-submodules https://github.com/spmzt/arcana.git
+git clone --recurse-submodules https://github.com/arcana-org/arcana.git
 cd arcana
 make check-deps                        # what is needed, and what is missing
 make install-missing-packages          # as root: pkg install what is missing

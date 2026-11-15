@@ -23,7 +23,7 @@ fresh checkout, `make obj` first, so that what is built goes under
 `obj/` and not beside the sources.
 
 ```sh
-git clone --recurse-submodules https://github.com/spmzt/arcana.git
+git clone --recurse-submodules https://github.com/arcana-org/arcana.git
 cd arcana
 cp config.mk.sample config.mk
 make obj && make -j8
@@ -63,13 +63,13 @@ kyua -v test_suites.FreeBSD.shots=/tmp/shots test pwa_test
 - A kind of job added to `arcana.yaml` is added to `jobs.yaml` too; the
   build stops otherwise.
 - What a user reads goes into this book, in
-  [spmzt/arcana-docs](https://github.com/spmzt/arcana-docs).
+  [arcana-org/arcana-docs](https://github.com/arcana-org/arcana-docs).
 
 ## The plans
 
 What is being built and in what order is in Arcana's `docs/`:
-[PLAN-119-SASE.md](https://github.com/spmzt/arcana/blob/main/docs/PLAN-119-SASE.md)
+[PLAN-119-SASE.md](https://github.com/arcana-org/arcana/blob/main/docs/PLAN-119-SASE.md)
 for Mplify 119 and SASE, and
-[TODO.md](https://github.com/spmzt/arcana/blob/main/docs/TODO.md) for
+[TODO.md](https://github.com/arcana-org/arcana/blob/main/docs/TODO.md) for
 the rest. This book's own plan is
-[PLAN.md](https://github.com/spmzt/arcana-docs/blob/main/PLAN.md).
+[PLAN.md](https://github.com/arcana-org/arcana-docs/blob/main/PLAN.md).

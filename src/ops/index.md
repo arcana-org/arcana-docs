@@ -72,5 +72,5 @@ is the first red step from the top; what it said is in its detail.
 ## Known limits
 
 What is known not to work, or has never been run for real, is kept in
-Arcana's [docs/TODO.md](https://github.com/spmzt/arcana/blob/main/docs/TODO.md),
+Arcana's [docs/TODO.md](https://github.com/arcana-org/arcana/blob/main/docs/TODO.md),
 under *Not yet verified* and *Known limits*.

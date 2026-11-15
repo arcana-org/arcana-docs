@@ -1,7 +1,7 @@
 # The console in a container
 
 The console is also published as a container image, built on FreeBSD:
-`ghcr.io/spmzt/arcana`. It runs the console unprivileged (uid 4310) on
+`ghcr.io/arcana-org/arcana`. It runs the console unprivileged (uid 4310) on
 port 8443: HTTPS with a certificate (RSA or EC) mounted as `console.pem` and
 `console.key` in `/usr/local/etc/arcana`, or plain HTTP behind a
 reverse proxy that does the HTTPS.
@@ -10,7 +10,7 @@ reverse proxy that does the HTTPS.
 podman run -d --name arcana -p 8443:8443 \
     -e ARCANA_RP_ID=console.example \
     -v arcana:/var/db/arcana \
-    ghcr.io/spmzt/arcana
+    ghcr.io/arcana-org/arcana
 podman exec arcana cat /var/db/arcana/setup-token
 ```
 

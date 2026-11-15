@@ -5,8 +5,8 @@ Written 2026-10-11, in Arcana's tree; moved here 2026-10-12, when B-1 began. Con
 ## What it is
 
 A manual that reads as a book, kept in its own repository,
-https://github.com/spmzt/arcana-docs, and published at
-https://spmzt.github.io/arcana-docs/ by GitHub Actions. The panel
+https://github.com/arcana-org/arcana-docs, and published at
+https://arcana-org.github.io/arcana-docs/ by GitHub Actions. The panel
 tutorial is its heart; the reference chapters, the SD-WAN part, the
 architecture and the developer's pages are around it. It says,
 chapter by chapter, which FreeBSD piece does the work.
@@ -37,7 +37,7 @@ CI; nothing of it is needed on the VM or a host to build Arcana.
   content moves into the book's tour and sections and USING.md is
   then a pointer to the book. Nothing heavy is added here.
 - **How the book reads Arcana**: its workflow checks out
-  spmzt/arcana (public) at main beside the book, and the chapters
+  arcana-org/arcana (public) at main beside the book, and the chapters
   include from that checkout (a real configuration, the man page,
   the developer's pages) instead of copies. The footer of every page
   names the Arcana commit it was built from.
@@ -137,7 +137,7 @@ beside, the SD-WAN and UX tasks as you say.
 
 ## What to confirm
 
-- The book in spmzt/arcana-docs, at https://spmzt.github.io/arcana-docs/,
+- The book in arcana-org/arcana-docs, at https://arcana-org.github.io/arcana-docs/,
   deployed by its own Actions; screenshots committed there.
 - Built daily from arcana's main (no token), or at once on every push
   to arcana (a token as arcana's secret).

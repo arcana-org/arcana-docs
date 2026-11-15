@@ -1,5 +1,5 @@
 # The book, built and published to GitHub Pages.  It describes Arcana
-# as it is on main: spmzt/arcana is checked out beside it for the
+# as it is on main: arcana-org/arcana is checked out beside it for the
 # chapters to include from, and its commit is named on every page.
 name: book
 
@@ -33,7 +33,7 @@ jobs:
       - name: Arcana, beside the book
         uses: actions/checkout@v5
         with:
-          repository: spmzt/arcana
+          repository: arcana-org/arcana
           path: arcana
 
       - name: mdBook

@@ -1,4 +1,4 @@
-// Every page names the Arcana it describes: the commit of spmzt/arcana
+// Every page names the Arcana it describes: the commit of arcana-org/arcana
 // the book was built from, put in by the book's workflow.
 (function () {
 	var commit = "@ARCANA_COMMIT@";
@@ -14,7 +14,7 @@
 	else {
 		p.appendChild(document.createTextNode("Describes Arcana at "));
 		var a = document.createElement("a");
-		a.href = "https://github.com/spmzt/arcana/commit/" + commit;
+		a.href = "https://github.com/arcana-org/arcana/commit/" + commit;
 		a.textContent = commit;
 		p.appendChild(a);
 		p.appendChild(document.createTextNode("."));
