@@ -70,6 +70,7 @@
 - [The document](sdwan/document.md)
 - [Check, plan and apply](sdwan/apply.md)
 - [Probes, rules and steering](sdwan/steering.md)
+- [Measurement](sdwan/measurement.md)
 - [Breakout, bandwidth and egress](sdwan/traffic.md)
 - [Routing and addresses at the UNIs](sdwan/routing.md)
 - [Several uplinks, several tunnels: the mesh](sdwan/mesh.md)
