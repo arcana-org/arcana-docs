@@ -59,9 +59,20 @@ jobs:
 
       - name: The whole book as one PDF
         run: |
+          # Chrome exits 0 whether or not it wrote the file: what it said
+          # is put in the run's annotations when there is no PDF.
+          google-chrome --version
           google-chrome --headless=new --no-sandbox --disable-gpu \
               --no-pdf-header-footer --virtual-time-budget=20000 \
-              --print-to-pdf=book/arcana.pdf "file://$PWD/book/print.html"
+              --print-to-pdf=book/arcana.pdf "file://$PWD/book/print.html" \
+              > chrome.log 2>&1 || true
+          if [ ! -s book/arcana.pdf ]; then
+              grep -v dbus chrome.log | tail -8 | while read -r l; do
+                  echo "::warning title=chrome::$l"
+              done
+              ls -l book/print.html
+              exit 1
+          fi
           ls -l book/arcana.pdf
 
       - name: Links
