@@ -17,8 +17,16 @@ out="$top/src/reference"
 [ -d "$a/share/arcana" ] || { echo "gen.sh: no Arcana at $a" >&2; exit 1; }
 mkdir -p "$out"
 
-awk -f "$a/www/arcana-ui/tools/openapi.awk" "$a/docs/openapi.yaml" |
-    python3 "$top/tools/openapi2md.py" > "$out/api.md"
+# /api: its OpenAPI document where an Arcana has one; since console
+# 0.410.0 /api keeps its plain-HTTP resources alone and has none.
+if [ -f "$a/docs/openapi.yaml" ] && [ -f "$a/www/arcana-ui/tools/openapi.awk" ]; then
+	awk -f "$a/www/arcana-ui/tools/openapi.awk" "$a/docs/openapi.yaml" |
+	    python3 "$top/tools/openapi2md.py" > "$out/api.md"
+else
+	printf '# /api (deprecated)\n\n%s\n' \
+	    'Since console 0.410.0 /api keeps only what is plain HTTP and no YANG module models: sign-in and sessions, health, enrolment, the Suricata pcap files, notifications and the WebSocket. Every other operation is RESTCONF'"'"'s: see [The API: RESTCONF](../automation/restconf.md) and [RESTCONF paths, by module](restconf-paths.md).' \
+	    > "$out/api.md"
+fi
 # RESTCONF's modules and paths, by Arcana's own script (an Arcana before
 # it has none: the page says so).
 if [ -f "$a/docs/restconf-modules.py" ]; then
@@ -36,6 +44,14 @@ for page in usr.sbin/arcanactl/arcanactl.8 usr.sbin/arcana-agent/arcana-agent.8 
     usr.sbin/arcana-enrol/arcana-enrol.8 usr.sbin/jailconf/jailconf.8 \
     www/arcana-console/arcana-console.8; do
 	name=$(basename "$page" .8)
+	# A program in a submodule of its own (jailconf), which the
+	# workflow's checkout does not fetch: said, not made.
+	if [ ! -f "$a/$page" ]; then
+		printf '# %s(8)\n\n%s\n' "$name" \
+		    "This build of the book read an Arcana without \`$page\`: the program is in a submodule of its own repository, whose manual page is there." \
+		    > "$out/$name.md"
+		continue
+	fi
 	{
 		printf '*Generated from `%s` at every build of the book.*\n\n' "$page"
 		mandoc -T markdown "$a/$page" |
