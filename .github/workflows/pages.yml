@@ -63,7 +63,8 @@ jobs:
           # is put in the run's annotations when there is no PDF.
           google-chrome --version
           google-chrome --headless=new --no-sandbox --disable-gpu \
-              --no-pdf-header-footer --virtual-time-budget=20000 \
+              --no-pdf-header-footer --virtual-time-budget=60000 \
+              --run-all-compositor-stages-before-draw --timeout=240000 \
               --print-to-pdf=book/arcana.pdf "file://$PWD/book/print.html" \
               > chrome.log 2>&1 || true
           if [ ! -s book/arcana.pdf ]; then
