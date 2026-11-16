@@ -146,6 +146,15 @@ in view while the graph scrolls.
   ![A task's YANG tab: the jails as arcana-jails](../img/tour-jails-yang.png)
 - **Raw output**, when a program ran, shows its argv, exit status and
   output verbatim.
+- **Follow output**, on a job's program that still runs (its step
+  picked in the graph): what the program has written so far, standard
+  output and standard error, then each piece as it comes, until it
+  exits. The agent keeps a live copy of a job's program's output while
+  it runs and sends it on its own stream (arcana-stream's
+  `exec-follow`, read from the program's pipes as poll(2) says they
+  have data); `arcanactl job-follow` *id* *step* is the same at a
+  shell. A program run with keys in its words keeps no output, and has
+  none to follow.
 - Changes are jobs the host runs on its own: the graph fills in stage
   by stage, and a change that cuts the console off still completes.
 - A task still waiting says what it asked and where it is. The graph
