@@ -217,13 +217,42 @@ ng_netflow sends a datagram once it is full: a quiet service's expired
 flows wait until more come, or until the node is shut down (a flush is
 kernel work).
 
+## BGP routes: BMP
+
+A service may have its BGP routes watched: the service form's **Route
+monitoring**, and how many of the last updates each edge keeps (64).
+Each of the service's BIRD instances then sends the BGP Monitoring
+Protocol (RFC 7854) to its own edge's agent, which keeps what it hears
+for the console; nothing listens on the console, so an edge behind NAT
+is heard as the others are.
+
+- BIRD's `protocol bmp` connects to 127.0.0.1, port 1790 plus the FIB
+  the instance runs in (arcana-agent's `--bmp-port` moves the base),
+  and monitors its RIB-in before and after the import policy.
+- The agent's station listens in that FIB (`SO_SETFIB`). lo0 belongs
+  to FIB 0, so a socket of another FIB cannot bind 127.0.0.1 while
+  `net.inet.tcp.bind_all_fibs` is 0; it listens on the wildcard
+  address instead, which a loopback connection from its FIB reaches,
+  and closes any connection whose far end is not the loopback. The
+  port a FIB apart keeps the instances apart when `bind_all_fibs` is 1.
+  An edge that is a vnet jail has its station's socket made in the
+  jail's network.
+- BIRD sends the pre-policy view only from a channel that keeps its
+  Adj-RIB-In, so a monitoring instance's BGP channels have `import
+  table on`: as much memory again as the routes they learn.
+
+The service's page shows, under **BGP routes**, each peer of each edge,
+up or down (with RFC 7854's reason when BIRD gives one), the prefixes
+it announced and withdrew and how many the import policy accepted;
+then the last updates, newest first: when, which peer, received or
+accepted, announced or withdrawn, the prefix, its next hop and AS path.
+
 ## Not measured yet
 
 - **IPFIX**, and an IPv6 collector for the flow records: ng_netflow
   exports NetFlow v5 and v9 alone, and ng_ksocket takes an IPv6 address
   only in its generic sockaddr form.
-- **BMP** from BIRD to the console, and a time-series store with a
-  retention for each class.
+- A **time-series store** with a retention for each class.
 - **The in-band variant of alternate marking**, the far end's block
   counts carried in STAMP's Direct Measurement TLV so that an edge
   could steer on loss without the console: `stampd` knows nothing of
