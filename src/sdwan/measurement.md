@@ -123,6 +123,12 @@ is a long dump).
 
 ## Alternate marking
 
+> **Off for now.** Alternate marking switches its colour by swapping two
+> ipfw tables each block, and FreeBSD's ipfw corrupts the values of
+> tables swapped so, and panics when they are flushed. The console and
+> the agents refuse it until ipfw is fixed; what follows is how it works
+> once it is on again.
+
 Probes measure probes. To measure the service's own packets, a service
 may turn on alternate marking (RFC 9341): the service form's
 **Alternate marking block, s** (2 to 3600). Time is cut into blocks of
