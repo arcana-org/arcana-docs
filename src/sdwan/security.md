@@ -58,12 +58,12 @@ The functions, what their entries are, and where they run:
 | Function | An entry | On the edge |
 |---|---|---|
 | `ippf` IP, port and protocol filtering | `sav4`, `dav4`, `protv4`, `sav6`, `dav6`, `nextheadv6`, `sport`, `dport`, as a flow's criteria (Table 5) | ipfw, on each flow |
-| `dnf` Domain name filtering | a name, or `*.` and one; each covers the names beneath it | unbound, by zone |
+| `dnf` Domain name filtering | a name, or `*.` and one; each covers the names beneath it; on a Block or Quarantine, a `*` for a whole label inside a name (`host.*.tld`) | unbound, by zone; a `*` inside, Squid |
 | `urlf` URL filtering | a host, `*.host`, either with a path, a `*` ending it | Squid, by zone |
 | `mbsf` Middlebox | a TLS version: `ssl3`, `tls1.0` … `tls1.3` | Squid, by zone |
-| `mdr` Malware detection and removal | none: ClamAV's signatures decide | c-icap and ClamAV, by zone |
-| `dpf` DNS protocol filtering | `sav4`, `dav4`, `sav6`, `dav6`, `message-type` `any` (Table 6) | ipfw, on each flow |
-| `pdns` Protective DNS | `type` `A` or `AAAA` and a `value`, an address, a prefix or `any` | unbound, by zone |
+| `mdr` Malware detection and removal | an MD5, SHA-1 or SHA-256 of what is scanned, in hex, `:size` in bytes after it where known | c-icap and ClamAV, by zone |
+| `dpf` DNS protocol filtering | `sav4`, `dav4`, `sav6`, `dav6`, `message-type` `any`, `query` or `response` (Table 6) | ipfw, on each flow |
+| `pdns` Protective DNS | `type` `A` or `AAAA` and a `value`, an address, a prefix or `any`; `CNAME` and the name an alias leads to (or `*.` and one); `NS` and a name server's name, address or prefix | unbound, by zone |
 
 There is no `dlp`: FreeBSD has no engine for data loss prevention,
 nor do the packages Arcana uses.
@@ -81,8 +81,12 @@ prefix is matched to the flow's destination and to its source. Where
 DPF does the same for the flow's DNS (UDP and TCP 53, TCP 853 for DNS
 over TLS) that is not for the edge itself, answering what it blocks
 at once with port unreachable; with `redirect` (Arcana's: MEF 138's
-Alter action), DNS it would block goes to the service's resolver on
-the edge instead.
+Alter action), IPv4 queries to port 53 it would block go to the
+service's resolver on the edge instead (ipfw's `fwd`). An entry's
+`message-type` is what ipfw can tell by the ports: a `query` goes to
+the port, a `response` comes from it, `any` is both. An update or
+another kind is inside the message, which ipfw does not read, so it
+is not taken.
 
 **DNF**, **PDNS**, **URLF**, **MBSF** and **MD+R** serve what a
 zone's clients ask for, so they are the zone's: whatever its policies
@@ -97,9 +101,31 @@ the document is refused. A policy that names one of them by
   (`access-control-view`). DNF's Block and Quarantine are local zones
   answering NXDOMAIN, its Allow ones answering as they would, the
   most specific deciding; where `no-match` is `block`, the root
-  answers NXDOMAIN but for the Allow. PDNS looks at the answers: an
-  answer whose address is on its Block (`response-ip`, the `respip`
-  module) is NXDOMAIN.
+  answers NXDOMAIN but for the Allow. A name with a `*` inside
+  (`host.*.tld`, MEF 138's R71) is none of unbound's, which has no
+  such match: on a Block or Quarantine the zone's HTTP and TLS go to
+  the service's Squid (below), which ends a connection whose TLS name
+  matches and refuses a request whose host does; on an Allow it is
+  refused, since Squid cannot let through what unbound blocks.
+  PDNS looks at the answers: an answer whose address is on its Block
+  (`response-ip`, the `respip` module) is NXDOMAIN. Its CNAME and NS
+  entries go to a response policy zone of the zone's own (unbound's
+  RPZ, tagged with the zone's prefixes): a CNAME's name is blocked
+  wherever it is in an answer's chain of aliases, an NS's where that
+  name server (`rpz-nsdname`) or address (`rpz-nsip`) serves the
+  answer. SOA, MX, SRV and PTR entries are refused: unbound's RPZ has
+  no trigger on their values.
+- **DNS over TLS**: a PDNS's `southbound` with `dot` (or `any`) has
+  the resolver answer on port 853 too, with a self-signed certificate
+  of the instance's own that the agent makes once with `openssl(1)`
+  and the Security tab offers; port 53 stays, for DNF and a DPF's
+  redirect. `northbound` `dot` sends the resolver's questions over TLS
+  to the `upstream` servers (`forward-tls-upstream`; at most eight,
+  each `address[@port]#name`, the name the one its certificate has,
+  port 853 unless said); with `upstream` and no `dot` it forwards to
+  them in the clear. The resolver is one a service, so the PDNS
+  policies of its zones agree on these. DNS over HTTPS is not taken:
+  the base system's unbound is built without it.
 - **URLF**, **MBSF** and **MD+R** are Squid, below.
 
 The Security tab lists the function policies, each with its lists,
@@ -192,6 +218,36 @@ its Block (with its Quarantine) each, its Allow tried first; its
 No-match last. The Security tab lists each edge's instances, their
 mode and state; the `sdwan` read has them as `proxy`.
 
+## Notifications
+
+MEF 138's two notifications are the console's, made as it reads the
+edges' events for its alerts.
+
+- A **Security Event Notification** (SEN) for each deny the edges'
+  IPPF and DPF rules log (the record, above) and each Suricata alert
+  (below), with Table 3's items: the issuer, a UTC timestamp, an ID (a
+  UUID), the function and its policy, IOC for a list's entry or OTHER
+  for a No-match and Suricata's rules, the event, the source, the
+  details, the action and the UNI where it is known. Every domain name
+  and URL in it is neutralised, its periods in brackets
+  (`www[.]example[.]net`). What unbound, Squid and c-icap block (DNF,
+  PDNS, URLF, MBSF, MD+R) is told in their logs on the edge, not as a
+  SEN.
+- A **Security Admin Notification** (SAN) for each function policy
+  whose values a kept document changes, or that it adds or takes
+  away, with Table 4's: who, from where, when, and the values that
+  changed alone, a Block's and Quarantine's names neutralised. Only
+  the document's `PUT` makes SANs (the Security tab's edits are one);
+  a write of the L3NM itself is audited, not told.
+
+Both are kept in the console's data directory, readable by the
+console's user alone, shown on the Security tab and read at
+`/restconf/data/arcana-console:sdwan/sen` and `san` (`?q=` to filter,
+CSV by `Accept: text/csv`). Settings, Notifications names their
+recipients: `mail_sen`, `mail_san`, `telegram_sen`, `telegram_san`.
+With no recipient of any kind set, the console reads no events, and
+no SEN is made.
+
 ## Identities
 
 ![Identities at a remote end point](../img/sd-identities.png)
@@ -238,8 +294,17 @@ comes back to its hosts scanned: over HTTP, and over TLS where its
 MBSF opens it. The service's Squid hands each response for the zone by
 ICAP to a c-icap of the service's own, which scans it with ClamAV and
 refuses what is infected: the client gets 403 Forbidden, and c-icap's
-log names what was found. ClamAV's signatures decide; lists of hashes
-are not given to it yet.
+log names what was found. ClamAV's signatures decide, and the MD+R's
+own lists: each entry a hash of a file (MD5, SHA-1 or SHA-256, its
+size after a colon where known), written by the agent into ClamAV's
+database directory as hash signatures before the services' c-icap are
+started again (`arcana-sdwan.hdb` for MD5, `.hsb` for the others; an
+Allow's as ClamAV's false positives, `.fp` and `.sfp`), each named
+`Arcana.<service>.<policy>.<list>` so that c-icap's log tells whose
+it was. An MD+R names no lists (feeds are of prefixes and domains).
+An edge has one ClamAV for all its services, so a hash on the Allow
+of one and the Block or Quarantine of another at the same edge is
+refused.
 
 c-icap listens on the edge's own address in the service, where Squid
 reaches it, at a port of the service's (1344 and ten for each routing
