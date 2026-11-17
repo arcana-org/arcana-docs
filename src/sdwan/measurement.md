@@ -1,7 +1,7 @@
 # Measurement
 
 Each edge measures what it carries: its tunnels, the underlay paths
-under them, and, when asked, the service's own traffic. The figures
+under them, and, when asked, the service's own traffic and its flows. The figures
 are RFC 9375's (one-way delay, its variation, loss, in microseconds
 and counts) and go three ways: into the edge's own decisions (a tunnel
 down, a threshold crossed, a policy's tunnel changed), into the
@@ -182,12 +182,40 @@ underlay paths, with their own figures. RFC 9375's metrics are one-way
 alone; the round trip is an augment's (`arcana-network-vpn-pm`), and
 it is all an ICMP-measured tunnel has.
 
+## Flow records
+
+A service may also record its flows, NetFlow version 9 (RFC 3954): the
+service form's **Flow records**, an IPv4 collector, its UDP port (2055),
+one packet recorded in N, and the active and inactive timeouts (1800
+and 15 s). At each edge that is a host, the base's netgraph(4) does it
+all, nothing of Arcana's on the data path:
+
+- ipfw, in the SD-WAN set at rule 9, copies each packet into and out of
+  the service's tunnels to netgraph (`[prob 1/N] ngtee`) through
+  ng_ipfw(4); `ngtee` is a tee, so the packet itself goes on;
+- an ng_netflow(4) node a service (`arcnfK`) keeps the flows of those
+  copies, raw IP on both hooks, and sends its records from its `export9`
+  hook;
+- an ng_ksocket(4) node sends them over UDP to the collector, from FIB
+  0.
+
+The console has each such edge load and keep ng_ipfw, ng_netflow and
+ng_ksocket. Without ng_ipfw, ipfw would drop what an `ngtee` rule
+matches, so the agent refuses flow records there. ng_ipfw makes its
+node in the host's network alone, so an edge that is a vnet jail (or an
+agent that is itself in one) records no flows: the console leaves such
+edges out and the agent refuses them. The nodes go and come with the
+SD-WAN set, and come back at the agent's start.
+
+ng_netflow sends a datagram once it is full: a quiet service's expired
+flows wait until more come, or until the node is shut down (a flush is
+kernel work).
+
 ## Not measured yet
 
-- **Flow records** (NetFlow v9 by ng_netflow(4) for each service's
-  FIB): ipfw hands packets to netgraph by `ngtee`, which needs
-  ng_ipfw(4) loaded; and ng_netflow keeps an expired flow in a partly
-  filled export datagram until it fills, with no timer to send it.
+- **IPFIX**, and an IPv6 collector for the flow records: ng_netflow
+  exports NetFlow v5 and v9 alone, and ng_ksocket takes an IPv6 address
+  only in its generic sockaddr form.
 - **BMP** from BIRD to the console, and a time-series store with a
   retention for each class.
 - **The in-band variant of alternate marking**, the far end's block
