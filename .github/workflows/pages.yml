@@ -65,11 +65,16 @@ jobs:
         run: |
           # Chrome exits 0 whether or not it wrote the file: what it said
           # is put in the run's annotations when there is no PDF.
+          # mdBook's print page calls window.print() once loaded, which
+          # a headless Chrome may take for its own print and stop at: a
+          # copy without it is printed, the page itself left as it is.
+          sed 's/window\.print()/void 0/g' book/print.html > book/print-pdf.html
           google-chrome --version
           google-chrome --headless=new --no-sandbox --disable-gpu \
               --no-pdf-header-footer --virtual-time-budget=20000 \
-              --print-to-pdf=book/arcana.pdf "file://$PWD/book/print.html" \
+              --print-to-pdf=book/arcana.pdf "file://$PWD/book/print-pdf.html" \
               > chrome.log 2>&1 || true
+          rm -f book/print-pdf.html
           if [ ! -s book/arcana.pdf ]; then
               echo "::warning title=chrome::$(google-chrome --version), $(wc -l < chrome.log) lines said, print.html $(wc -c < book/print.html) bytes, $(ls book/arcana.pdf 2>&1)"
               tail -6 chrome.log | while read -r l; do
