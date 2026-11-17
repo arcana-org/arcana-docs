@@ -60,18 +60,28 @@ jobs:
       # Chrome 157 on the runner writes no PDF of the book and says
       # nothing but dbus noise (it does where the book is built by hand):
       # the site is not held back for it; the step stays red.
+      # Chrome 157, the runner's, prints nothing of the book and says
+      # nothing why; 156 does (as the book is built by hand).
+      - name: Chrome 156
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: 156
+
       - name: The whole book as one PDF
         continue-on-error: true
+        env:
+          CHROME: ${{ steps.chrome.outputs.chrome-path }}
         run: |
           # Chrome exits 0 whether or not it wrote the file: what it said
           # is put in the run's annotations when there is no PDF.
-          google-chrome --version
-          google-chrome --headless=new --no-sandbox --disable-gpu \
+          "$CHROME" --version
+          "$CHROME" --headless=new --no-sandbox --disable-gpu \
               --no-pdf-header-footer --virtual-time-budget=20000 \
               --print-to-pdf=book/arcana.pdf "file://$PWD/book/print.html" \
               > chrome.log 2>&1 || true
           if [ ! -s book/arcana.pdf ]; then
-              echo "::warning title=chrome::$(google-chrome --version), $(wc -l < chrome.log) lines said, print.html $(wc -c < book/print.html) bytes, $(ls book/arcana.pdf 2>&1)"
+              echo "::warning title=chrome::$("$CHROME" --version), $(wc -l < chrome.log) lines said, print.html $(wc -c < book/print.html) bytes, $(ls book/arcana.pdf 2>&1)"
               tail -6 chrome.log | while read -r l; do
                   echo "::warning title=chrome::$l"
               done
