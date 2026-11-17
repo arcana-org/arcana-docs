@@ -75,6 +75,7 @@ jobs:
               tail -6 chrome.log | while read -r l; do
                   echo "::warning title=chrome::$l"
               done
+              echo "--- chrome.log"; cat chrome.log; echo "---"
               exit 1
           fi
           ls -l book/arcana.pdf
