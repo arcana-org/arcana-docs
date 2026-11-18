@@ -6,7 +6,7 @@ each tab says what runs there and what it was given. The plugins are
 the host's own: Arcana installs none of them by itself. A tab whose
 plugin the host lacks says so, with a button that installs it when you
 press it (`pkg install squid`; `c-icap c-icap-modules clamav`;
-`clamav`; `suricata`).
+`clamav`; `suricata`; `sslproxy`).
 
 SD-WAN's security policies use the same plugins at its edges
 ([Security policies](../sdwan/security.md)); what this page makes is
@@ -315,6 +315,130 @@ its pid file appears: Suricata writes that file first, then loads its
 rules and opens its capture or divert port, and may still stop there.
 If it does, the job fails with the first and the last error it
 logged; the ruleset's rules it left out are not counted as why.
+
+## SSL inspection
+
+SSLproxy opening the clients' TLS on its way through the host,
+transparently: the clients set no proxy, the firewall sends their
+traffic to it. It is a plugin like the others, **Install sslproxy**
+installing it (`pkg install sslproxy`) when you press it; Arcana
+installs nothing by itself. This is phase 1 of the design (Arcana's
+`docs/notes/ssl-inspection.md`): one form per host, typed on the tab.
+
+### How the traffic reaches it
+
+The port has no rc script, so Arcana ships one, **`arcana_sslproxy`**,
+as it ships `arcana_relay`: `arcana_sslproxy_enable` in `rc.conf`,
+started and stopped by `service(8)`, the configuration checked by
+`sslproxy -Q` before every start (and by `service arcana_sslproxy
+configtest`). **Enable**, **Start**, **Restart**, **Stop** and
+**Disable** on the tab are jobs that do the same.
+
+The clients' connections are sent to SSLproxy's loopback ports by
+ipfw `fwd` rules, one for each protocol, family and interface:
+
+```
+fwd 127.0.0.1,8443 tcp from 192.0.2.0/24 to not me 443 in recv em1 // sslproxy:https
+```
+
+`fwd` keeps the original destination, so SSLproxy's NAT engine
+`ipfw` reads it with `getsockname(2)`: no NAT, no divert. The rules
+are in **set 27 at rule 7**, before the ACLs' entry (8) and SD-WAN's
+rules (9 to 99), and are loaded as the ACLs are: written to set 26
+while it is disabled, swapped into set 27, set 26 emptied. They are
+loaded when SSLproxy starts, by the job or by the rc script at boot,
+and taken away before it stops, so a stopped proxy is sent nothing.
+The admin's own rules are never touched: if set 26 or 27 holds a rule
+that is not SSL inspection's (its comment says `sslproxy:`), or
+another set has a rule numbered 7, nothing is loaded and the tab says
+why; move those rules first.
+
+### The form
+
+**Save** renders `/usr/local/etc/sslproxy.conf` on the host from the
+form, checks it with `sslproxy -Q -f` before it replaces the file, and
+restarts SSLproxy where it runs; the form itself is kept beside the CA
+(`/usr/local/etc/sslproxy/arcana/spec.json`). A file the form did not
+write is the admin's and is replaced only with **Replace the admin's
+sslproxy.conf** ticked.
+
+- **What is inspected**: https (443), http, smtps, pop3s and imaps,
+  each with its port and the loopback port SSLproxy listens at (8443
+  for https).
+- **Interfaces**: where the clients' traffic comes in, at least one;
+  each rule is `in recv` one of them.
+- **Clients**: the prefixes inspected, such as `192.0.2.0/24,
+  2001:db8::/64`; empty, every client on those interfaces.
+- **IPv6 too**: a `fwd ::1` rule beside each `127.0.0.1` one.
+- **Connect log**: a line per connection in
+  `/var/log/sslproxy/connect.log`, on by default. **Content log**
+  writes what was opened, whole: off, unless you are troubleshooting.
+- **SSH logged**: port 22 relayed by a plain `tcp` proxyspec, never
+  opened, a connect-log line per session.
+- **Pass what cannot be opened**: a connection that wants a client
+  certificate is passed through as it is (`Passthrough`), not dropped.
+
+SSLproxy runs in split mode (`Divert no`): what it opens is logged and
+encrypted again, handed to no other program.
+
+### The CA: the fleet's root, the edge's intermediate
+
+SSLproxy signs a certificate for every site it opens, so the clients
+must trust its CA. Arcana keeps that trust in two levels:
+
+- **The root**, one per tenant fleet (the fleet's own for a host with
+  no tenant), made by the console at its first use and kept in its
+  data directory (`inspection/`); its key never leaves the console.
+- **The edge's intermediate**: its key (EC P-256) is made on the host
+  (`ca.key`, 0600, root's alone) and never read out. **Issue from the
+  fleet's root** has the host make the key and a request, the console
+  sign it as an intermediate CA (path length 0) and send it back, all
+  in one request (`arcana-console:hosts/host/inspection-ca`). The host
+  takes only a CA's certificate of the key it is waiting with, issued
+  by the chain given. **Renew from the fleet's root** makes a new key
+  that waits as `ca.key.next` while the old one serves, until its
+  certificate comes.
+
+**Download the root (PEM)** gives `arcana-inspection-root.crt`, what
+every client of the fleet installs once, for every edge. An edge that
+is lost gives away its own intermediate, never the root.
+
+Below, the tab shows the configuration as rendered and the `fwd` rules
+as `ipfw` lists them, with how many the form makes.
+
+### What later phases bring
+
+- **Phase 2**: inspection as a MEF 138 security function of the
+  SD-WAN's services, bound to a zone as the URL filter's policies are,
+  compiled by the console into the edge's form (its clients the zone's
+  prefixes, its interfaces the UNIs); SD-WAN's transparent TLS moves
+  from Squid's `ssl-bump` to SSLproxy, its `fwd` rule in the service's
+  FIB.
+- **Phase 3**: what is not opened: a do-not-decrypt list (`PassSite`
+  by name), with a small default of Arcana's (FreeBSD's update and
+  package servers, the console) and the admin's own; exceptions from
+  the tab and from a connect-log line; clients and destinations from
+  the console's prefix lists.
+- **Phase 4**: the connect log read as events, each connection opened,
+  passed, blocked or failed counted; the plaintext mirrored to
+  Suricata over an `epair(4)` for IDS; SSH sessions from Suricata's
+  records.
+
+Not in phase 1 either: a vnet jail's own SSLproxy, a console cluster's
+other nodes holding the roots, a root's rotation and revocation list.
+
+From a shell: `arcanactl sslproxy`, `sslproxy conf form.json
+[replace]`, `sslproxy enable | disable | start | stop | restart`,
+`sslproxy csr [renew]`, `sslproxy install-ca cert.pem chain.pem`. Its
+YANG module is `arcana-sslproxy`.
+
+<div class="freebsd">
+
+**FreeBSD:** `sslproxy(1)` from the ports (security/sslproxy);
+`ipfw(8)`'s `fwd` action and sets; `rc.subr(8)` for
+`arcana_sslproxy`; the CA by OpenSSL in the base system.
+
+</div>
 
 ## By the API
 

@@ -1,7 +1,7 @@
 # System and host security
 
 Two tabs of a host, **System** and **Security**, and what the Storage,
-Log, Sysctl and IPsec tabs show beside their own: the system's own
+Log, Sysctl and Network tabs show beside their own: the system's own
 configuration, FreeBSD's files and daemons. A file is written whole
 by a task (`sysfile`), one of a fixed table and no other path, and the
 daemon that reads it is told; the rest is changed by the task that owns
@@ -106,6 +106,6 @@ app can read too: see [The API: RESTCONF](../automation/restconf.md#forms-a-modu
   redirects or source routing...), as this kernel has them: now, what
   hardened is, why; each applied, or all that differ, kept in
   `sysctl.conf`.
-- **IPsec: setkey**: `ipsec.conf`, `setkey(8)`'s policies and manual
-  keys (root's alone), the policies now (`setkey -DP`); IKE
-  (strongSwan) makes them for those it knows.
+- **Network: IPsec**: `ipsec.conf`, `setkey(8)`'s policies and manual
+  keys (root's alone), and the kernel's policies now, read by PF_KEY;
+  see [Network, IPsec](network.md#ipsec).

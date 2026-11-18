@@ -38,15 +38,53 @@ automatically as what another needs, its size, its port and what it is.
   jail's packages at once (`pkg upgrade -y` in each), a job each in one
   batch, after asking: a jail without `pkg`, or whose repositories
   cannot be read, fails alone. The host's own packages are not touched.
-  The agent runs four of these jobs at once, each in a jail of its own,
-  a jail's own one after another, so a download that stalls in one jail
-  holds up no other; the next job of another kind waits for them.
-  A `pkg` that says nothing for ten minutes (`--pkg-idle`) is stopped
-  with what it started in the jail, and its job fails saying so; one
-  at work can also be cancelled from **Recent tasks**.
+  Beside the button, the host's **lanes** and how many of its jobs run
+  now ("4 lanes, 2 jobs running"): the agent runs that many of these
+  jobs at once, each in a jail of its own, a jail's own one after
+  another, so a download that stalls in one jail holds up no other;
+  the next job of another kind waits for them. Four by default, 1 to
+  32, set on the Jobs tab (`arcana-jobs` `lanes`, kept in
+  `/usr/local/etc/arcana/jobs.conf`). The confirmation says both, and
+  names the running jails that are on pkgbase: in those the same
+  upgrade moves the FreeBSD base system packages (`FreeBSD-*`) too, to
+  what their base repository has now, a new patch level or snapshot,
+  and the jail may want a restart after it.
 - **Install…** installs packages by name, on the host or in the jail
   picked (`pkg install -y`).
 
+### Before pkg: the repository asked
+
+Before `pkg update`, an upgrade, an install, or a jail's base by pkg,
+the agent asks the repository whether it answers from where `pkg`
+will run: attached to the jail (or on the host), it fetches the
+repository's `meta.conf` from the URL `pkg -vv` gives, following an
+SRV record as `pkg` does and using `PKG_ENV`'s proxies, IPv6 and IPv4
+raced. If nothing answers within 8 seconds (`--repo-reach`), `pkg` is
+not started, and the job fails saying what was tried and which address
+families the jail or host has: a jail with no route out fails in
+seconds, not after a stalled download. **Don't check the repository**
+in a package box skips the question (a job's `no-repo-check`,
+`arcanactl -R`).
+
+### A pkg that falls silent
+
+`pkg` is watched while it runs. While it fetches, ten minutes of
+silence (`--pkg-idle`, 600 s) stop it, with what it started in the
+jail, and the job fails saying so, and whether the repository answered
+when asked after. Once it has begun installing, silence is most often
+a package's script at work: the job's trace says that `pkg` waits on a
+package's script, with the last line `pkg` printed, and `pkg` is
+stopped only after three times `--pkg-idle` (30 minutes). A failed
+fetch's error carries `pkg`'s own lines about it, the URL and the
+reason. A running job's trace shows what its program has printed so
+far, and one at work can be cancelled from **Recent tasks**.
+
+After an upgrade, what is still pending is read from `pkg`'s catalogue
+(`pkg version -U`), without asking the repository again. A `pkg` that
+an agent left running when it restarted (an update) is stopped by the
+agent that follows (SIGTERM, then SIGKILL after 5 seconds), found by
+the `ARCANA_AGENT_JOB` in its environment, and listed as a job that
+failed: "stopped: the agent restarted under it".
 ### A jail's base system by pkg
 
 A running jail of FreeBSD 15.1 or later whose base system is still the
@@ -90,7 +128,7 @@ When `pkg` refuses packages built for a newer FreeBSD than the host's
 does it again with `IGNORE_OSVERSION=yes`.
 
 From a shell: `arcanactl packages [-i] [-r] [-4 | -6] [jail]` (with the
-repositories), `pkg-upgrade [-O] [-r repo] …`, `pkg-clean [-a] [-j jail | -J]`, `pkg-install [-O] [-4 | -6] [-r repo]
+repositories), `pkg-upgrade [-O] [-R] [-r repo] …`, `pkg-clean [-a] [-j jail | -J]`, `pkg-install [-O] [-4 | -6] [-r repo]
 [-j jail] package …`, `jail-base jail convert [-r repo] [-b release] [set …]`,
 `jail-base jail upgrade [-r repo] release`.
 
@@ -108,7 +146,7 @@ waits for it.
 <div class="freebsd">
 
 **FreeBSD:** `pkg(8)`, for a jail with `pkg -j`, its repositories
-`pkg.conf(5)`; pkgbase's `FreeBSD-set-*` packages; `jail(8)`'s
+`pkg.conf(5)`, asked first by `fetch(3)` from inside the jail; pkgbase's `FreeBSD-set-*` packages; `jail(8)`'s
 `allow.chflags` and `chflags(2)`. A job is the agent's own, run by a
 thread of it and kept in its memory.
 

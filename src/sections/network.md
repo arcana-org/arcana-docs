@@ -2,7 +2,7 @@
 
 **Network** shows the host's network as the kernel has it, a view at a
 time: **Routes**, **Nexthops**, **Connections**, **Sockets**,
-**Interfaces**, **Netgraph**, **WireGuard**, **Bridges**, **Geneve**,
+**Interfaces**, **Netgraph**, **WireGuard**, **IPsec**, **Bridges**, **Geneve**,
 **Neighbours**, **CARP** and **Multicast**, each for IPv4, IPv6 or both. Filter the rows, and click
 a column to sort.
 
@@ -12,7 +12,7 @@ a column to sort.
 through `netlink(4)`; connections and sockets come from the kernel's
 own lists, as `netstat(1)` and `sockstat(1)` read them; interfaces from
 `getifaddrs(3)`, changed with `ifconfig(8)`; netgraph with `ngctl(8)`;
-WireGuard with `wg(8)`;
+WireGuard with `wg(8)`; IPsec by `pfkey(4)`;
 what is kept for a boot is written to `rc.conf` with `sysrc(8)`.
 
 </div>
@@ -193,6 +193,115 @@ Kept for a boot, an interface is written with its key, addresses and
 peers to `/usr/local/etc/wireguard/<if>.conf` for `wg-quick`, readable
 by root alone, and named in `wireguard_interfaces`: that needs the
 `wireguard-tools` package.
+
+## IPsec
+
+The kernel's own IPsec, with nothing installed: security associations
+(SAs) and security policies, and the `ipsec(4)` interfaces that carry
+them. It is a part of the base system's row, the **IPsec** button after
+WireGuard (`#/hosts/<id>/network/base/ipsec`), shown whether or not
+strongSwan is there. Keys agreed by an IKE daemon are strongSwan's, a
+plugin with a section of its own: [IPsec (strongSwan)](plugins.md#ipsec).
+
+The agent talks to the kernel itself, over a PF_KEY socket of its own
+(`pfkey(4)`), as `setkey(8)` would; it runs no `setkey` at all. It keeps
+the words of what it put in, and puts them back when it starts.
+
+### An ipsec(4) interface and its SAs
+
+An `ipsec` interface is made on the Interfaces view, **+ interface**
+with the kind ipsec and a **reqid**: its two outer addresses are the
+tunnel's, and what the interface's routes send through it is
+encapsulated by the SAs of that reqid (route-based IPsec). **+ manual
+SAs** opens one form for them, a verb at a time, each a job:
+
+- **key** has the host make a key pair for the interface (X25519), kept
+  0600 beside the agent's files; its public half is shown by the
+  host's SD-WAN read. `key next` makes the pair to come, for a
+  rotation.
+- **derive** makes the SAs of both directions from the host's pair and
+  the peer's public half (`peer <base64>`), HKDF-SHA256 of the X25519
+  agreement, the same on both ends, so that no key is ever typed or
+  sent: `enc aes-gcm-16`, or `aes-cbc` with `auth hmac-sha2-256`;
+  `epoch` for another set from the same pair; `lifetime` for the
+  manager to turn the keys by; `encap` for ESP in UDP (port 4500);
+  `esn`. A rotation derives from the next pair (`next`) and puts in the
+  inbound SAs on both ends before the outbound ones (`install in`, then
+  `out`), so neither end sends on keys the other lacks.
+- **set** puts in SAs from keys given: `spi-in`, `spi-out` (256 or
+  more), `key-in`, `key-out` and, with aes-cbc, `akey-in`, `akey-out`,
+  in hex.
+- **commit** ends a rotation: the old inbound SA out, the next pair
+  made the pair. A rotation that fails is a fault (`key-rotation`)
+  until one succeeds.
+- **clear** deletes every SA between the two addresses, then Arcana's
+  policies on them, and what was kept of the keys.
+
+The reqid must be the one the interface's own policies have, or the
+job fails before anything changes. The keys never appear in a job's
+trace. In safe mode the host puts back what was there when the console
+does not confirm the job: derived SAs come back from their words, but
+keys typed by hand cannot, so a safe job over those is refused.
+
+The same from a shell: `arcanactl ipsec-sa key | derive | set | commit |
+clear | policy | unpolicy`, with the interface, reqid and outer
+addresses.
+
+### Policies
+
+**policy** sends a selector's traffic through the interface's SAs as
+well, both ways: `src` and `dst` prefixes, and if wanted `proto`
+(tcp, udp, sctp, icmp, ipv6-icmp or a number), `sport` and `dport`.
+The agent adds two global policies by PF_KEY (`SADB_X_SPDADD`): out,
+at level *unique* on the reqid, so the traffic leaves by those SAs or
+not at all; in, at level *use*, since the kernel hands the interface's
+ESP to the interface. They have a priority of Arcana's own, after
+`ipsec.conf`'s. **unpolicy** takes a selector's policies out, or with
+no selector every one of Arcana's on those SAs.
+
+The agent never touches a policy that is not its own: an `ipsec`
+interface's, `ipsec.conf`'s, or an IKE daemon's. A selector one of
+those already has fails the job and is left as it is, and Arcana's
+policies are deleted by the id the kernel gave them, never by selector.
+
+### ipsec.conf, at boot
+
+Below the form, `ipsec.conf`: `setkey(8)`'s commands (`spdadd`, `add`
+for manual keys, `flush`, `spdflush`), root's alone since its keys are
+in it, edited here and loaded at boot by `rc.d/ipsec`
+(`ipsec_enable`). Beside it, the kernel's policies as they are now,
+read by PF_KEY, each one marked with whose it is: an `ipsec(4)`
+interface's, Arcana's, or this file's and an IKE daemon's.
+
+### What the kernel says
+
+The agent registers a PF_KEY socket for ESP and tells what the kernel
+sends it as RFC 9061's IKE-less notifications (the
+`ietf-i2nsf-ikeless` module), among the host's YANG notifications:
+
+- **sadb-acquire**: an outbound packet met a policy whose SA is not
+  there (`SADB_ACQUIRE`), with the policy and its selector.
+- **sadb-expire**: an SA reached its soft or hard lifetime
+  (`SADB_EXPIRE`), with the bytes and packets it carried and its age.
+- **sadb-seq-overflow**: the kernel has no message for this, so the
+  agent reads the SAs every 10 seconds and tells once of an SA without
+  ESN whose sequence counter nears its end.
+
+They cover every SA and policy of the host's network, `setkey`'s and
+an IKE daemon's included; a vnet jail's PF_KEY is its own and is not
+watched. RFC 9061's `sadb-bad-spi` is not told: FreeBSD's PF_KEY has no
+message for it. Until the IKE-less lists name them, an SA is named
+`esp/<destination>/0x<SPI>` and a policy `spd/<id>`. Where `ipsec.ko`
+is not loaded, the agent says so once in its log and tries again every
+minute.
+
+<div class="freebsd">
+
+**FreeBSD:** `ipsec(4)` and `if_ipsec(4)`, built in or `ipsec.ko`;
+`pfkey(4)`, PF_KEY version 2 (RFC 2367), from `<net/pfkeyv2.h>`;
+`setkey(8)` and `rc.d/ipsec` for `ipsec.conf` at boot.
+
+</div>
 
 ## Bridges
 

@@ -6,7 +6,7 @@ the base system's:
 | Tab | Program | Package |
 |---|---|---|
 | **BIRD** | `birdc(8)` | `bird3` |
-| **IPsec** | strongSwan's `swanctl(8)` (an `ipsec(4)` interface is the base system's) | `strongswan` |
+| **strongSwan** | strongSwan's `swanctl(8)` (an `ipsec(4)` interface, manual SAs and policies are the base system's: [Network, IPsec](network.md#ipsec)) | `strongswan` |
 | **Builder** (a page of its own) | `poudriere(8)` | `poudriere` or `poudriere-devel` |
 
 Each has a tab of its own, after the others and marked ◆, on every
@@ -25,7 +25,9 @@ each running vnet jail, and the tab is then of that jail.
 ## IPsec
 
 strongSwan, IKEv2 only: every connection Arcana writes says `version =
-2`.
+2`. Its section of the Network tab, **strongSwan**, has IKE alone; the
+kernel's IPsec without IKE (manual SAs, policies by PF_KEY,
+`ipsec.conf`) is the base system's, [Network, IPsec](network.md#ipsec).
 
 ![IPsec: connections, their children and SAs](../img/sec-ipsec.png)
 
