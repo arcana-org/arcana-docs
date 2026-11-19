@@ -3,24 +3,30 @@
 A plugin is what works through a program that has to be installed, not
 the base system's:
 
-| Tab | Program | Package |
+| Where | Program | Package |
 |---|---|---|
-| **BIRD** | `birdc(8)` | `bird3` |
-| **strongSwan** | strongSwan's `swanctl(8)` (an `ipsec(4)` interface, manual SAs and policies are the base system's: [Network, IPsec](network.md#ipsec)) | `strongswan` |
+| **BIRD**, a view of the host's Network | `birdc(8)` | `bird3` |
+| **strongSwan**, a view of the host's Network | strongSwan's `swanctl(8)` (an `ipsec(4)` interface, manual SAs and policies are the base system's: [Network, IPsec](network.md#ipsec)) | `strongswan` |
 | **Builder** (a page of its own) | `poudriere(8)` | `poudriere` or `poudriere-devel` |
 
-Each has a tab of its own, after the others and marked ◆, on every
-host. Where the plugin is not installed (on the host, or in the jail
-picked, each marked so in the picker), the tab says which program it
+BIRD and strongSwan are views of the host's **Network**, beside Base
+system (`#/hosts/<id>/network/bird`, `.../network/strongswan`), drawn
+as plugins: hovering one says where it is installed, on the host or in
+a jail. Where the plugin is not installed (on the host, or in the jail
+picked, each marked so in the picker), the view says which program it
 works through and which package has it, with a button that installs it
-there with `pkg install`, a job of its own; the tab comes alive once it
-is done. Nothing is installed but when that is pressed. **From a
+there with `pkg install`, a job of its own; the view comes alive once
+it is done. Nothing is installed but when that is pressed. **From a
 template… → A plugin's package installed** does the same as a workflow.
+
+The plugins that guard a host, SSLproxy among them, are tabs of the
+**Security** page in the side bar, installed the same way
+([Security](security.md)).
 
 A jail's programs are looked for as the jail sees them: the agent
 attaches to the jail to look, so a link inside the jail leads where it
 does there. The picker at the left of the toolbar names the host and
-each running vnet jail, and the tab is then of that jail.
+each running vnet jail, and the view is then of that jail.
 
 ## IPsec
 
