@@ -45,6 +45,32 @@ sets it `off`. **Exported now** is what mountd says (`showmount -e`).
 sharenfs=-maproot=root` and `arcanactl nfs server enable=yes minor=2
 threads=16 pnfs=ds1:/DSstore0,ds2:/DSstore1 mirror=2` do the same.
 
+### In a vnet jail
+
+A jail with a network of its own may run its own NFS server, by
+`jail(8)`'s `allow.nfsd`. Pick the jail at the top of the NFS tab: its
+`nfsd(8)`, `mountd(8)` and `nfsuserd(8)` then run in the jail, from
+its own `rc.conf` (`sysrc -j`) and `rc.d` (its `service(8)`, through
+`jexec(8)`), serving its own `exports(5)`, written beneath its root and
+never through a link out of it. The jail needs:
+
+- **vnet** (`vnet = new` in its `jail.conf`, and an interface given to
+  it): nfsd serves from a vnet jail alone;
+- **`allow.nfsd`**, in its `jail.conf` or set on the running jail
+  (a jail's page, **Permissions**);
+- **`enforce_statfs` 1 or 2**, not 0: mountd exports what the jail sees
+  of its file systems, and with 2 only its root's;
+- **a root that is a file system's mount point**, such as a ZFS
+  dataset of its own, for mountd to export from.
+
+A jail that lacks one is refused, with what to set. In a jail nfsd
+serves over TCP alone and without pNFS, as `nfsd(8)` says, and the
+datasets' `sharenfs` stays the host's (`zfs` writes the host's
+`/etc/zfs/exports`, for the host's mountd): a jail exports by its
+`exports(5)` alone, its `V4:` root a directory on ZFS as the jail sees
+it. From a shell: `arcanactl -j <jail> netstore nfs`, `arcanactl -j <jail> nfs
+exports FILE`, `arcanactl -j <jail> nfs server enable=yes`.
+
 ## iSCSI
 
 The iSCSI target: `ctld(8)` and `ctl.conf(5)`, the kernel's CAM Target
@@ -59,6 +85,10 @@ secrets, and has ctld read it again. Under it, what `ctladm(8)` says of
 the LUNs, the sessions and the ports.
 
 `arcanactl iscsi conf FILE` and `arcanactl iscsi enable yes`.
+
+The iSCSI target is the host's alone: ctld serves the kernel's CAM
+Target Layer (`ctl(4)`), which no jail has. A jail given to it is
+refused with that reason.
 
 ## HAST
 
@@ -76,3 +106,6 @@ written on the provider, which loses what it held, asked first) and
 Under them, `hastctl status` and `hastctl list`.
 
 `arcanactl hast conf FILE`, `hast create NAME`, `hast role primary NAME`.
+
+HAST is the host's alone too: hastd replicates GEOM providers and makes
+`/dev/hast/*`, which no jail has.

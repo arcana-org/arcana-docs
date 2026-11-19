@@ -74,8 +74,28 @@ first, and a **Nice** value to give it, -20 to 20. Both are jobs. The
 agent checks that the process is still the one shown, by when it
 started, and refuses `init`, the kernel's own and itself.
 
+A process of a jail, signalled or reniced, names its jail in the job,
+so the job's history says where it ran.
+
 From a shell: `arcanactl [-j jail] ps [pid]`, `arcanactl signal pid
 [name]`, `arcanactl renice pid nice`.
+
+### Crash cores
+
+A process the kernel says dumped core (`exited on signal ... (core
+dumped)`, with `kern.logsigexit`) is a fault, **Process crash**, and its
+core is listed by `arcanactl crashes`: where `kern.corefile` put it,
+its program, pid, size and time. `arcanactl crashes backtrace <core>`
+reads its backtrace with the host's debugger, run as `nobody`, with no
+init files, within limits of CPU time, memory and time. Nothing is
+changed.
+
+Each running jail's cores are listed too, each with the jail's name:
+the kernel resolves `kern.corefile` in the crashing process's own root,
+so a jail's core is beneath the jail's root, found there without
+following a link out of it. `arcanactl -j <jail> crashes backtrace
+<core>` reads it with the jail's own program and libraries, and only a
+core of a crash the kernel said was in that jail.
 
 <div class="freebsd">
 

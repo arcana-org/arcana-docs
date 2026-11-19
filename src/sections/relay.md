@@ -123,6 +123,10 @@ the tab.
 
 ### Its history
 
+A jail's relays are read from the jail's own log, so their rates are in
+the history and the archive beside the host's, each named
+`<jail>:<tag>` (`web:wg0`, say).
+
 Under the table, the overhead of each interval between two reports,
 both ways, as two lines over the intervals the log still holds (240 at
 most, those since the relay last started). The relay counts from its
@@ -157,8 +161,9 @@ On the host every change is sent in safe mode. A relay often carries
 the very tunnel the console reaches the host by, so a change that cuts
 it is undone when the console cannot confirm it. Undoing puts back
 `arcana_relay_flags` and `arcana_relay_enable` as they were, and the relay
-running or stopped as it was. A jail's relay is changed without safe
-mode.
+running or stopped as it was. A jail's relay may be changed in safe
+mode as well (`-s -j`), and is then undone in the jail, its own
+`rc.conf` and its relay put back.
 
 From the command line: `arcanactl speeder` reads it, and `arcanactl
 speeder conf role=client listen=… remote=… [mode=…] [mtu=…] [fec=…]

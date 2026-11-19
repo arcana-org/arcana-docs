@@ -109,3 +109,53 @@ app can read too: see [The API: RESTCONF](../automation/restconf.md#forms-a-modu
 - **Network: IPsec**: `ipsec.conf`, `setkey(8)`'s policies and manual
   keys (root's alone), and the kernel's policies now, read by PF_KEY;
   see [Network, IPsec](network.md#ipsec).
+
+## A jail's own files
+
+The System, Security and Log tabs have a **Where** picker: the host,
+or one of its running jails. A jail's own daemons read their own files,
+so with a jail picked these are the jail's:
+
+- `syslog.conf` and `newsyslog.conf`, the jail's `syslogd(8)` told to
+  reload them;
+- `periodic.conf` and periodic's variables (each daily, weekly,
+  monthly and security script on or off in the jail);
+- `krb5.conf`;
+- `dma(8)`'s files, `/etc/dma/dma.conf` and `auth.conf` (its group the
+  jail's own `mail`);
+- `ipsec.conf`, in a vnet jail alone: `rc.d/ipsec` runs only in a jail
+  with a network of its own, and a jail of the host's network has the
+  host's IPsec.
+
+Each is written beneath the jail's root and never through a link out
+of it, `sysrc` run in the jail (`sysrc -j`), and the jail's daemon told
+by its own `service(8)` through `jexec(8)`. From a shell: `arcanactl -j
+<jail> system` reads them, `arcanactl -j <jail> sysfile FILE PATH`
+writes one.
+
+The rest is the host's by its nature, and refused for a jail with the
+reason:
+
+| File | Why it is the host's |
+|---|---|
+| `loader.conf`, `loader.conf.d` | the loader's tunables are the host's boot's |
+| `devd` rules | `devd(8)` is the host's: a jail has no devices' events |
+| `rctl.conf` | `rctl(8)`'s rules are the host's kernel's: a jail is limited from the host (subject `jail`) |
+| `audit_control`, `audit_user` | `auditd(8)` is the host's: `audit(4)` records the jails' processes with the host's |
+| `devfs.rules` | a jail's `/dev` is the rule set its `jail.conf` names (`devfs_ruleset`) |
+| securelevel at boot | a jail's securelevel is its `jail.conf`'s `securelevel` |
+
+The NTP servers, Linux compatibility, MAC modules, service jails and
+rctl's rules shown above are the host's as well: one kernel, one clock.
+
+### A jail's syslog, as YANG
+
+Each running jail's `syslogd` is also a datastore of its own. The
+module `arcana-syslog` has a list `jail-syslog`, a jail an entry, and
+the jail's root is a mount point (RFC 8528, schema mount): under it,
+`ietf-syslog` (RFC 9742) is that jail's `syslog.conf` and
+`newsyslog.conf`, read beneath its root. A commit writes Arcana's files
+in the jail as the host's commit does on the host, and tells the jail's
+`syslogd`. A jail left out of an edit is left as it is; a stopped jail
+has no entry, and an edit of one is refused. From a shell:
+`arcanactl -j <jail> get syslog` and `arcanactl -j <jail> edit syslog`.

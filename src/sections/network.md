@@ -134,7 +134,10 @@ carries what the models do not have yet (CARP, the interface flags).
   put on `rtadvd_interfaces`, rtadvd enabled and told with `rtadvctl
   reload` when it runs, restarted when it has to; a warning the commit
   waits for (your rc.conf names, say) is shown with a button that
-  accepts it and commits again.
+  accepts it and commits again. With a vnet jail picked, it is the
+  jail's own router advertisements on its own interfaces: the jail's
+  `rtadvd.conf`, `rc.conf` and `rtadvd`, run in it (`arcanactl -j
+  <jail> rtadvd ...`).
 
 A change is made live, and with **Keep it in rc.conf** also written
 there, to be there after a boot: a created interface in
@@ -246,6 +249,16 @@ keys typed by hand cannot, so a safe job over those is refused.
 The same from a shell: `arcanactl ipsec-sa key | derive | set | commit |
 clear | policy | unpolicy`, with the interface, reqid and outer
 addresses.
+
+**In a vnet jail** (the jail picked, or `arcanactl -j <jail>
+ipsec-sa ...`): the SAs and policies are put in the jail's own network
+stack, by a PF_KEY socket made there, since each vnet has its own
+security databases. The key pair and what is kept of it stay on the
+host, beside the agent's files, named `<interface>@<jail>`, which is
+also how the SD-WAN read, the `sdwan-key` event and the
+`key-rotation` fault name them. A safe change is put back in the
+jail. A jail of the host's network has the host's IPsec, and no SAs of
+its own.
 
 ### Policies
 

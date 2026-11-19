@@ -27,6 +27,9 @@ trouble in it (error, fail, denied, panic) is marked red, one of doubt
   security.bsd.unprivileged_read_msgbuf=1` (kept in
   `/etc/sysctl.conf`) lets it.
 - **audit** is the audit trail, where the host keeps one.
+- A jail's `syslog.conf` and `newsyslog.conf` are its own, changed
+  with the jail picked in **Where**: see [A jail's own
+  files](system.md#a-jails-own-files).
 
 From a shell: `arcanactl log [-o lines] [-f position] [name [text]]`.
 

@@ -294,12 +294,61 @@ before.
 
 ![The Services tab](../img/tour-services.png)
 
+### A stale pidfile
+
+`rc(8)` finds a daemon by the pid in its pidfile. Where an enabled
+service's program runs but `service NAME status` says it is stopped,
+the pidfile is stale: a stop or a restart misses the daemon, and a
+start would run a second copy beside it. The row then says **running,
+its pidfile is stale**, and offers **Mend pidfile** in place of
+**Start**: a job (the service-action `pidfile`) that writes the pid of
+the one process found, after checking again that it is that program's.
+Where the process is not known, the drawer says what to do by hand.
+From the command line: `arcanactl service NAME pidfile`.
+
+### Services of a running jail
+
+The picker at the left of the toolbar names the host or one of its
+running jails, and a jail's page has **Services of this jail**. With a
+jail picked, the list is the jail's own `rc.d` scripts, those of its
+`/etc/rc.d` and `/usr/local/etc/rc.d`, as the jail sees them, and each
+one's status is what the jail's own `service(8)` says. Nothing is
+installed in the jail for it: the agent reads the scripts from a
+helper attached to the jail, so a link inside the jail never leads out
+of it.
+
+- **Start**, **Stop**, **Restart** and **Reload** run the script in the
+  jail alone, by its own `service(8)`: `service -j <jail> <name>
+  <verb>`.
+- **Enable**, **Disable** and the drawer's variables are written to the
+  jail's own `rc.conf` with `sysrc -j`, never to Arcana's file on the
+  host, and put back as they were when the console does not confirm
+  the change (safe mode).
+- A stale pidfile is looked for in the jail too: its script read by the
+  jail's own `sh` and `rc.subr`, its processes and pidfile by the
+  helper attached to it. **Mend pidfile** writes the pid beneath the
+  jail's root, never through a link, after checking that the process is
+  that program's among the jail's processes.
+- A service starting or stopping in a jail is an event
+  (`service-state`) that names the jail.
+
+A jail that is not running, or a script the jail does not have, is
+refused. A service jail that `rc(8)` made for one of the host's own
+services (`NAME_svcj`) has the host's root and the host's scripts, so
+it is not listed as a jail of its own. From the command line:
+`arcanactl services -j <jail>`, `arcanactl service -j <jail> <name>
+start` (and the other verbs), `arcanactl service -j <jail> <name>
+config`. See [Jails and Arcana's features](jails-features.md) for the
+rest of what works in a jail.
+
 <div class="freebsd">
 
 **FreeBSD:** running jails are read with `libjail(3)`, configured ones
 from `jail.conf(5)` by Arcana's `libjailconf`, and acted on with
 `jail(8)`; services are `service(8)` and `rc.conf(5)`, the host's
 written to `/usr/local/etc/rc.conf.d/arcana`, which `rc_conf_files`
-names, or to the system's `rc.conf`, a jail's with `sysrc(8)` in its own root (`sysrc -R`).
+names, or to the system's `rc.conf`; a jail's run by its own `service(8)`
+(`service -j`) and written to its own `rc.conf` with `sysrc -j`, both
+through `jexec(8)`.
 
 </div>

@@ -39,6 +39,7 @@
 
 - [The panel](sections/panel.md)
 - [A host: summary, jails, services](sections/host.md)
+- [Jails and Arcana's features](sections/jails-features.md)
 - [The Terminal](sections/terminal.md)
 - [Network](sections/network.md)
 - [Firewall](sections/firewall.md)

@@ -80,6 +80,18 @@ that tell the hosts to ask. The apply also turns the kernel's
 forwarding on, both families, kept in `sysctl.conf`. Paths lists each
 edge's instances and the leases they gave, under Addresses given.
 
+At an edge that is a vnet jail, the DHCP and DNS instances are the
+jail's own, run in it by `jexec(8)` and named `sw<fib>-<jail>` like its
+BIRD: dnsmasq must be installed in the jail (`pkg -j <jail> install
+dnsmasq`), and local-unbound is the jail's base system's. The agent
+keeps the jail's lists apart from the host's (`sdwan-dhcp@<jail>.json`,
+`sdwan-dns@<jail>.json`), and the instances' files in the jail's own
+`/var/run`, `/var/db` (the leases, DNS over TLS's key and certificate)
+and `/var/log` (unbound's log, read for what it blocks). Each edge's
+`sdwan` read lists its own BIRD, dnsmasq and unbound instances, a
+host's not its jails'. The router advertisements for `slaac` are still
+the host's own edge's alone.
+
 ## The UCS End Points, addressed and routed
 
 **The UCS End Points, addressed and routed** (Mplify 119 §12.2.3):

@@ -8,6 +8,18 @@ plugin the host lacks says so, with a button that installs it when you
 press it (`pkg install squid`; `c-icap c-icap-modules clamav`;
 `clamav`; `suricata`; `sslproxy`).
 
+**Runs in**, beside the host, picks where the page looks: the host
+itself, or one of its running jails. With a jail picked, the URL
+filters, their scanning and the intrusion detections are those made
+there, their programs the jail's own, and **Install** installs the
+plugin in the jail (`pkg -j <jail> install ...`). A jailed instance's
+files live in `/var/db/arcana-security` beneath the jail's root,
+written by descriptors opened beneath it, never through a link out of
+it, and its programs run in the jail by `jexec(8)`. The lists are
+still saved whole, the host's and the jails' together. See [In a
+jail](#in-a-jail) below, and [SSL inspection in a
+jail](#ssl-inspection-in-a-jail).
+
 SD-WAN's security policies use the same plugins at its edges
 ([Security policies](../sdwan/security.md)); what this page makes is
 kept apart from them: its instances are named `sec-…`, and saving one
@@ -424,8 +436,59 @@ as `ipfw` lists them, with how many the form makes.
   Suricata over an `epair(4)` for IDS; SSH sessions from Suricata's
   records.
 
-Not in phase 1 either: a vnet jail's own SSLproxy, a console cluster's
-other nodes holding the roots, a root's rotation and revocation list.
+Not in phase 1 either: a console cluster's other nodes holding the
+roots, a root's rotation and revocation list.
+
+### SSL inspection in a jail
+
+Each running jail may run an SSLproxy of its own, beside the host's, so
+a host may run several. Pick the jail in the tab's picker (the host, or
+any running jail, vnet or not); what the tab reads, sends and issues is
+then the jail's:
+
+- **Installed in the jail**: **Install sslproxy** with the jail picked
+  is `pkg -j <jail> install sslproxy`. Arcana finds the program beneath
+  the jail's root without following a link out of it, and runs it there
+  by `jexec(8)` (`sslproxy -V`, `sslproxy -Q -f`).
+- **Its files** (`sslproxy.conf`, the form, the CA, the rules) are
+  written beneath the jail's root, at the paths the jail sees: a link
+  the jail put there refuses the write, and nothing is written outside
+  the jail.
+- **Its CA**: the intermediate's key is made for the jail and stays
+  beneath its root; the console signs it from the fleet's root as
+  *Arcana SSL inspection on host1/web*, for a jail `web` of a host
+  `host1`.
+- **Its service**: Arcana's `arcana_sslproxy` script is copied into
+  the jail's `/usr/local/etc/rc.d`, its variables are in the jail's
+  `rc.conf` (`sysrc -j`), and it is run there (`service -j`).
+
+How the clients' traffic reaches it depends on the jail's network:
+
+- **A vnet jail** has its own ipfw, so its `fwd` rules are its own:
+  set 27 at rule 7, staged in set 26, refused as the host's are when a
+  rule of the jail admin's is in the way. The rc script in the jail
+  loads them when SSLproxy starts, and the agent loads them again if
+  the jail's set 27 loses them while SSLproxy runs.
+- **A jail of the host's network** has no ipfw of its own. SSLproxy
+  listens at the jail's own address (the first of `ip4.addr` and
+  `ip6.addr`), and the host's ipfw sends the clients there: `fwd
+  192.0.2.10,8443 ...`, its comment tagged `sslproxy:https@web`. A
+  `fwd` to a local address keeps the connection's original destination,
+  which `getsockname(2)` in the jail reads, as SSLproxy's `ipfw` NAT
+  engine wants. The rules are rendered and kept by the host
+  (`jails/<jail>.fwd`), never read from the jail, and loaded into the
+  host's set 27 beside the host's own while the jail's SSLproxy runs
+  (the host's rc script names that directory with
+  `arcana_sslproxy_jails`). A `deny` rule keeps clients from reaching
+  SSLproxy's port at the jail's address other than by the `fwd`. A jail
+  without an address of a family refuses the form for it: give it one,
+  or turn IPv6 off in the form.
+
+From a shell: `arcanactl -j <jail> sslproxy ...`, every verb of it.
+
+The rc script's `arcana_sslproxy_fwd`, set empty, loads no rules: that
+is how the jail's copy of it, in a jail of the host's network, touches
+none.
 
 From a shell: `arcanactl sslproxy`, `sslproxy conf form.json
 [replace]`, `sslproxy enable | disable | start | stop | restart`,
@@ -437,6 +500,58 @@ YANG module is `arcana-sslproxy`.
 **FreeBSD:** `sslproxy(1)` from the ports (security/sslproxy);
 `ipfw(8)`'s `fwd` action and sets; `rc.subr(8)` for
 `arcana_sslproxy`; the CA by OpenSSL in the base system.
+
+</div>
+
+## In a jail
+
+A URL filter (Squid, with its c-icap and ClamAV) and an intrusion
+detection (Suricata) may run in any running jail, with the host's
+network or one of its own. What differs from the host's:
+
+- **Its files and programs are the jail's.** Squid, c-icap, ClamAV and
+  Suricata are installed in the jail and run there by `jexec(8)`; the
+  configuration Arcana renders is written beneath the jail's root, and
+  `eve.json` is read from there. A signal to a jailed instance is sent
+  from inside the jail, so a pidfile the jail wrote can reach none of
+  the host's processes.
+- **Its signatures are the jail's.** A jail's c-icap reads the jail's
+  own ClamAV databases. **Start freshclam** with the jail picked enables
+  `clamav_freshclam` in the jail's `rc.conf` (`sysrc -j`) and starts it
+  there (`service -j`); the mirrors written are the jail's own
+  `freshclam.conf`. From a shell: `arcanactl -j <jail> clamav start`,
+  `arcanactl -j <jail> clamav mirrors ...`.
+- **Its ruleset is the jail's.** A jailed Suricata adds the ruleset the
+  jail's own `suricata-update` keeps, run in the jail by hand for now;
+  **Fetch the ruleset**, **Rules** and **Sources** on the page are the
+  host's.
+- **Detection** works in any jail whose devfs shows it `bpf(4)`
+  (its `devfs_ruleset`): a jail of the host's network watches the
+  host's interfaces it can open, a vnet jail its own.
+- **Prevention needs a vnet jail.** `divert(4)` sockets are a vnet
+  jail's alone: the kernel grants the divert privilege to no other jail.
+  So Arcana places the divert rules in the jail's own ipfw, run there by
+  `jexec(8)`: one rule an interface the instance watches, `divert
+  <port> ip from any to any via <if> // secids:<name>`, at **rule 6 of
+  set 25**, loaded first into set 24 and swapped in, as SSL inspection's
+  are. The jail admin's rules are never touched: a rule of set 24 or 25
+  that is not the IDS's own, or another set's rule 6, refuses the change
+  and nothing is loaded. An instance that prevents in a jail of the
+  host's network is refused.
+
+Not yet for a jailed instance: an instance is started again only when
+its list is applied again (**Start** on the page), so a jail restarted
+leaves it stopped until then; its own rules' live counters, the
+statistics Suricata's command socket gives, its `pcap-log` files and
+replays are the host's instances' alone; its interfaces' offloading is
+read for the host's alone.
+
+<div class="freebsd">
+
+**FreeBSD:** `jexec(8)` and `pkg -j` for the jail's programs;
+`divert(4)`, which only a jail with its own `vnet(9)` stack may open;
+`ipfw(8)`'s sets, the jail's own ipfw in a vnet jail; `bpf(4)` exposed
+by the jail's `devfs.rules(5)` rule set.
 
 </div>
 

@@ -53,10 +53,13 @@ them:
   makes in the jail. What it needs installed (strongSwan, BIRD,
   wg(8)) is looked for in the jail, as the jail sees its files. One
   server can so carry several edges, itself and its jails, as a lab on
-  one host does. Not yet at a jail's edge: the services the host runs
-  for a service (dnsmasq, unbound, Squid, Suricata, its BIRD), NTP,
-  rtadvd, a `uswe` tunnel's manual SAs and the security record; an
-  apply that needs one there stops and says so.
+  one host does. The services an edge runs for a service run in the
+  jail too, by `jexec(8)`, named by the jail as well: its BIRD, its
+  DHCP (dnsmasq) and DNS (local-unbound), its URL filter (Squid with
+  c-icap and ClamAV), its Suricata, and an MBSF's SSLproxy. Still the
+  host's own edge's alone: NTP, rtadvd and a `uswe` tunnel's manual
+  SAs; an apply that needs one at a jail's edge stops and says so. See
+  [Jails and Arcana's features](../sections/jails-features.md).
 - `swvcs`: the services (SD-WAN Virtual Connections, §9). Each has
   an `id`, the `fib` it has on its edges (1 or more; FIB 0 is the
   underlay's), its `ucs`, `reserved_prefixes` (the provider's own

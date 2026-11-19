@@ -218,6 +218,26 @@ its Block (with its Quarantine) each, its Allow tried first; its
 No-match last. The Security tab lists each edge's instances, their
 mode and state; the `sdwan` read has them as `proxy`.
 
+### At an edge that is a vnet jail
+
+The service's Squid, its c-icap and ClamAV, and its Suricata run in the
+jail, as its dnsmasq and unbound do: installed there (`pkg -j`), their
+files in `/var/db/arcana-sdwan` beneath the jail's root, the MD+R's
+hashes written for the jail's own ClamAV. The rules that forward HTTP
+and TLS to Squid, and those that divert to a Suricata that prevents,
+are the edge's own rules, at rule 9 in the jail's ipfw, as a host
+edge's are in the host's; none of the Security section's rule 6 is
+placed for them. An MBSF there is served by the jail's own
+SSLproxy ([SSL inspection in a
+jail](../sections/security.md#ssl-inspection-in-a-jail)); the apply
+asks for `sslproxy` to be installed in the jail when it lacks it.
+
+Not yet at a jail's edge: a jail not running when its agent starts
+leaves its instances stopped until the next apply; Suricata's replays
+and the ruleset's management are the host's; and a cleartext HTTP
+connection an MBSF resets is logged to the jail's own routing socket,
+which the agent's record does not listen on, so it makes no SEN.
+
 ## Notifications
 
 MEF 138's two notifications are the console's, made as it reads the

@@ -34,6 +34,10 @@ Pick a jail on its host's **Jails** tab for its own page.
   `jail.conf`'s defaults and includes are applied.
 - **History**: what was done to this jail from the console.
 
+**Services of this jail** opens the Services tab with the jail picked.
+Most of Arcana's features work for a jail as for the host: see [Jails
+and Arcana's features](../sections/jails-features.md).
+
 ## What a change did
 
 Pick a box of a task's graph to see what it was. Here, the agent ran

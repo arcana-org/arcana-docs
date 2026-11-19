@@ -97,9 +97,13 @@ what it needs, and says which `pkg install` is missing where. See
 
 ### An edge in a vnet jail
 
-An edge may be a vnet jail, made and changed from its host; but the
-probes and the rules run where the agent runs, so such an edge is not
-measured or steered yet.
+An edge may be a vnet jail, made and changed from its host. Its
+probes run from the jail's network and its rules are its own ipfw's
+([Probes, rules and steering](steering.md)), and its services' daemons
+run in the jail; their faults name the jail (`id@jail`). What such an
+edge does not have yet: NTP, rtadvd and manual SAs, which the apply
+refuses there; flow export, since it has no `ng_ipfw` node of its own;
+and a STAMP session of its own.
 
 ### Reading what an edge was told
 
